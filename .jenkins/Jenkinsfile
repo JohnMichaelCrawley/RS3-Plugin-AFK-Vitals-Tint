@@ -1,0 +1,161 @@
+
+/*
+ * =============================================================================
+ * 
+ * File:        Jenkinsfile
+ * Project:     RS3 AFK Vitals Tint
+ * Author:      John Crawley
+ *
+ * Description:
+ *   Defines the Jenkins Continuous Integration and Continuous Delivery
+ *   pipeline for the RuneScape 3 AFK Vitals Tint plugin.
+ *
+ *   Automates source validation, unit testing, artifact packaging,
+ *   optional deployment to the local RuneScape Developer Beta, and
+ *   controlled release submission to mod.io.
+ *
+ * Pipeline:
+ *   1. Checkout source code from GitHub.
+ *   2. Validate required plugin files.
+ *   3. Execute CI checks and automated tests.
+ *   4. Package the plugin into a distributable ZIP.
+ *   5. Optionally deploy to the local Developer Beta.
+ *   6. Optionally approve a mod.io release submission.
+ *
+ * Security:
+ *   Deployment stages are disabled by default.
+ *   Production releases require explicit approval.
+ *   Secrets must be managed through Jenkins Credentials.
+ *
+ * =============================================================================
+ */
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        skipDefaultCheckout(true)
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    parameters {
+        booleanParam(
+            name: 'DEPLOY_RC',
+            defaultValue: false,
+            description: 'Deploy to the local RuneScape Developer Beta'
+        )
+
+        booleanParam(
+            name: 'PUBLISH_MODIO',
+            defaultValue: false,
+            description: 'Request a mod.io release submission'
+        )
+    }
+
+    environment {
+        PLUGIN_NAME = 'afk-vitals-tint'
+        ARTIFACT_PATH = 'dist/afk-vitals-tint.zip'
+    }
+
+    stages {
+
+        stage('Checkout Source') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Validate Project Structure') {
+            steps {
+                sh '''
+                    set -eu
+
+                    test -f src/main.lua
+                    test -f src/plugin.json
+                    test -f src/logic.lua
+                    test -f src/settings.lua
+                    test -f tests/test_logic.lua
+
+                    echo "Required project files found."
+                '''
+            }
+        }
+
+        stage('Continuous Integration') {
+            steps {
+                sh 'bash .jenkins/scripts/ci.sh'
+            }
+        }
+
+        stage('Package Plugin') {
+            steps {
+                sh 'bash .jenkins/scripts/package.sh'
+
+                sh 'test -s dist/afk-vitals-tint.zip'
+
+                archiveArtifacts(
+                    artifacts: 'dist/afk-vitals-tint.zip',
+                    fingerprint: true
+                )
+            }
+        }
+
+        stage('Deploy to Developer Beta') {
+            when {
+                allOf {
+                    anyOf {
+                        branch 'main'
+                        branch 'master'
+                    }
+                    expression { params.DEPLOY_RC }
+                }
+            }
+
+            steps {
+                sh 'bash .jenkins/scripts/deploy-rc.sh'
+            }
+        }
+
+        stage('Release to mod.io') {
+            when {
+                beforeInput true
+
+                allOf {
+                    anyOf {
+                        branch 'main'
+                        branch 'master'
+                    }
+                    expression { params.PUBLISH_MODIO }
+                }
+            }
+
+            input {
+                message 'Approve submission to mod.io for Jagex review?'
+                ok 'Approve Release'
+            }
+
+            steps {
+                error(
+                    'mod.io upload is not configured yet. ' +
+                    'No release has been submitted.'
+                )
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed. Check the console output.'
+        }
+
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}

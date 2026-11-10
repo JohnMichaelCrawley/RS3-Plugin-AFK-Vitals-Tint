@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+.AppleDouble
+# Build artifacts
+dist/
+build/
+*.zip
+# Temporary files
+*.tmp
+*.log
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+# Editor files
+.vscode/
+.idea/
