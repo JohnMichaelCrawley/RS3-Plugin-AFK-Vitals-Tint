@@ -1,35 +1,4 @@
 
-/*
- * =============================================================================
- * 
- * File:        Jenkinsfile
- * Project:     RS3 AFK Vitals Tint
- * Author:      John Crawley
- *
- * Description:
- *   Defines the Jenkins Continuous Integration and Continuous Delivery
- *   pipeline for the RuneScape 3 AFK Vitals Tint plugin.
- *
- *   Automates source validation, unit testing, artifact packaging,
- *   optional deployment to the local RuneScape Developer Beta, and
- *   controlled release submission to mod.io.
- *
- * Pipeline:
- *   1. Checkout source code from GitHub.
- *   2. Validate required plugin files.
- *   3. Execute CI checks and automated tests.
- *   4. Package the plugin into a distributable ZIP.
- *   5. Optionally deploy to the local Developer Beta.
- *   6. Optionally approve a mod.io release submission.
- *
- * Security:
- *   Deployment stages are disabled by default.
- *   Production releases require explicit approval.
- *   Secrets must be managed through Jenkins Credentials.
- *
- * =============================================================================
- */
-
 pipeline {
     agent any
 
@@ -37,30 +6,42 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         skipDefaultCheckout(true)
-        buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
     parameters {
         booleanParam(
             name: 'DEPLOY_RC',
             defaultValue: false,
-            description: 'Deploy to the local RuneScape Developer Beta'
+            description: 'Deploy the tested ZIP to local RuneScape Developer Beta'
         )
-
         booleanParam(
             name: 'PUBLISH_MODIO',
             defaultValue: false,
-            description: 'Request a mod.io release submission'
+            description: 'Submit this version to mod.io after manual approval'
+        )
+        booleanParam(
+            name: 'CONFIRM_NO_MODERATION_FREEZE',
+            defaultValue: false,
+            description: 'Confirm Jagex has NOT asked you to freeze mod.io submissions'
+        )
+        string(
+            name: 'MODIO_GAME_ID',
+            defaultValue: '',
+            description: 'Numerical mod.io RuneScape game ID'
+        )
+        string(
+            name: 'MODIO_MOD_ID',
+            defaultValue: '',
+            description: 'Numerical mod.io listing ID for AFK Vitals Tint'
+        )
+        text(
+            name: 'RELEASE_CHANGELOG',
+            defaultValue: '',
+            description: 'Describe changes since the previous approved release'
         )
     }
 
-    environment {
-        PLUGIN_NAME = 'afk-vitals-tint'
-        ARTIFACT_PATH = 'dist/afk-vitals-tint.zip'
-    }
-
     stages {
-
         stage('Checkout Source') {
             steps {
                 checkout scm
@@ -71,13 +52,12 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-
                     test -f src/main.lua
                     test -f src/plugin.json
                     test -f src/logic.lua
                     test -f src/settings.lua
+                    test -f src/settings_ui.lua
                     test -f tests/test_logic.lua
-
                     echo "Required project files found."
                 '''
             }
@@ -92,7 +72,6 @@ pipeline {
         stage('Package Plugin') {
             steps {
                 sh 'bash .jenkins/scripts/package.sh'
-
                 sh 'test -s dist/afk-vitals-tint.zip'
 
                 archiveArtifacts(
@@ -104,43 +83,63 @@ pipeline {
 
         stage('Deploy to Developer Beta') {
             when {
-                allOf {
-                    anyOf {
-                        branch 'main'
-                        branch 'master'
-                    }
-                    expression { params.DEPLOY_RC }
-                }
+                expression { params.DEPLOY_RC }
             }
-
             steps {
                 sh 'bash .jenkins/scripts/deploy-rc.sh'
             }
         }
 
-        stage('Release to mod.io') {
+        stage('Submit to mod.io') {
             when {
-                beforeInput true
-
-                allOf {
-                    anyOf {
-                        branch 'main'
-                        branch 'master'
-                    }
-                    expression { params.PUBLISH_MODIO }
-                }
-            }
-
-            input {
-                message 'Approve submission to mod.io for Jagex review?'
-                ok 'Approve Release'
+                expression { params.PUBLISH_MODIO }
             }
 
             steps {
-                error(
-                    'mod.io upload is not configured yet. ' +
-                    'No release has been submitted.'
-                )
+                script {
+                    if (env.BRANCH_NAME != 'master') {
+                        error('mod.io submission is restricted to master.')
+                    }
+
+                    if (!params.CONFIRM_NO_MODERATION_FREEZE) {
+                        error('Confirm that no Jagex moderation freeze is active.')
+                    }
+
+                    if (!params.RELEASE_CHANGELOG?.trim()) {
+                        error('A release changelog is required.')
+                    }
+
+                    if (!(params.MODIO_GAME_ID ==~ /[0-9]+/) ||
+                        !(params.MODIO_MOD_ID ==~ /[0-9]+/)) {
+                        error('Set the numerical mod.io game and listing IDs.')
+                    }
+
+                    def version = sh(
+                        script: '''python3 -c 'import json; print(json.load(open("src/plugin.json"))["version"])' ''',
+                        returnStdout: true
+                    ).trim()
+
+                    input(
+                        message: "Submit AFK Vitals Tint v${version} to mod.io for moderation?",
+                        ok: 'Submit this version'
+                    )
+                }
+
+                withCredentials([
+                    string(
+                        credentialsId: 'modio-oauth-token',
+                        variable: 'MODIO_TOKEN'
+                    )
+                ]) {
+                    withEnv([
+                        "MODIO_GAME_ID=${params.MODIO_GAME_ID}",
+                        "MODIO_MOD_ID=${params.MODIO_MOD_ID}",
+                        "RELEASE_CHANGELOG=${params.RELEASE_CHANGELOG}",
+                        'MODIO_UPLOAD_CONFIRM=YES'
+                    ]) {
+                        sh 'bash .jenkins/scripts/deploy-modio.sh'
+                    }
+                }
             }
         }
     }
@@ -149,13 +148,8 @@ pipeline {
         success {
             echo 'Pipeline completed successfully.'
         }
-
         failure {
-            echo 'Pipeline failed. Check the console output.'
-        }
-
-        always {
-            echo 'Pipeline execution finished.'
+            echo 'Pipeline failed. Review the console output.'
         }
     }
 }

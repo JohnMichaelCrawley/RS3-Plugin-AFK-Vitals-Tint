@@ -1,5 +1,6 @@
 {
   "name": "AFK Vitals Tint",
   "version": "0.1.0",
-  "contactEmailAddress": "contact@example.invalid"
+  "contactEmailAddress": "contact@example.invalid",
+  "hasSettingsIcon": true
 }
