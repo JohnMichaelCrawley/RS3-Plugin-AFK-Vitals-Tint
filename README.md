@@ -1,5 +1,5 @@
-# RS3-Plugin-AFK-Vitals-Tint
 
+# RS3-Plugin-AFK-Vitals-Tint
 
 <div align="center">
 
@@ -14,7 +14,7 @@
 ![Lua](https://img.shields.io/badge/language-Lua%205.4-2C2D72?style=flat-square)
 ![Release status](https://img.shields.io/badge/mod.io-awaiting%20approval-orange?style=flat-square)
 
-[Features](#-features) · [Screenshots](#-screenshots) · [Installation](#-installation) · [Settings](#%EF%B8%8F-settings) · [Development](#-development) · [mod.io](#-modio-release)
+[Features](#features) · [Screenshots](#screenshots) · [Installation](#installation) · [Settings](#️-settings) · [Testing & CI/CD](#-testing-and-cicd) · [mod.io](#-modio-release)
 
 </div>
 
@@ -28,25 +28,26 @@
 
 ## Features
 
-- **Low HP warning:** a transparent red screen tint appears as your Life Points fall below your chosen threshold.
-- **Low Prayer warning:** a transparent blue tint increases in intensity as your Prayer Points decrease.
-- **Split-screen warnings:** when both resources are low, red occupies the left half and blue the right half (enabled by default).
-- **Custom thresholds and opacity:** choose when warnings start and how prominent the overlays become.
-- **Click-through overlays:** keep interacting with RuneScape while the tint is visible.
-- **Saved preferences:** warning toggles, thresholds, split mode and maximum opacity persist between sessions.
-- **One-time visual preview:** test HP, Prayer or both without changing in-game resource values.
-- **Prayer-reading stabilisation:** handles temporary missing readings and filters sudden inconsistent increases to reduce flashing.
+- **Low HP warning:** A transparent red screen tint appears as your Life Points fall below your chosen threshold.
+- **Low Prayer warning:** A transparent blue tint increases in intensity as your Prayer Points decrease.
+- **Split-screen warnings:** When both resources are low, red occupies the left half and blue the right half (enabled by default).
+- **Custom thresholds and opacity:** Choose when warnings start and how prominent the overlays become.
+- **Click-through overlays:** Keep interacting with RuneScape while the tint is visible.
+- **Saved preferences:** Warning toggles, thresholds, split mode and maximum opacity persist between sessions.
+- **One-time visual preview:** Test HP, Prayer or both without changing in-game resource values.
+- **Prayer-reading stabilisation:** Handles temporary missing readings and filters sudden inconsistent increases to reduce flashing.
 
 ## Screenshots
+
 <table>
   <tr>
     <td width="50%" align="center">
       <img src="assets/screenshots/hp-warning.jpg" alt="Red overlay warning for low HP" width="100%" />
-      <br /><strong>Low HP — red tint</strong>
+      <br /><strong>Low HP — Red tint</strong>
     </td>
     <td width="50%" align="center">
       <img src="assets/screenshots/prayer-warning.jpg" alt="Blue overlay warning for low Prayer" width="100%" />
-      <br /><strong>Low Prayer — blue tint</strong>
+      <br /><strong>Low Prayer — Blue tint</strong>
     </td>
   </tr>
   <tr>
@@ -103,7 +104,8 @@ Saved settings are restored on reload. **Preview does not persist** and automati
 
 ## Installation
 
-### Mod.io (waiting approval)
+### mod.io (Awaiting approval)
+
 > ⏳ **Awaiting moderation.** This plugin was submitted to mod.io, but its public listing is not confirmed yet. Until approved, it is not available to install on live RuneScape worlds.
 
 Once approved:
@@ -126,41 +128,38 @@ The Jenkins pipeline under `.jenkins/Jenkinsfile` performs:
 5. **Optional Developer Beta deployment**, when explicitly enabled.
 6. **Optional mod.io submission**, gated by branch restrictions, release details, credentials and manual approval.
 
-
 ## Project structure
 
 ```text
 RS3-Plugin-AFK-Vitals-Tint/
 ├── .jenkins/
-│   ├── Jenkinsfile              # Defines the Jenkins CI/CD pipeline and build stages
+│   ├── Jenkinsfile                  # Defines the Jenkins CI/CD pipeline and build stages
 │   └── scripts/
-│       ├── ci.sh                # Validates Lua syntax, plugin manifest and runs automated tests
-│       ├── package.sh           # Packages plugin files into a distributable ZIP archive
-│       ├── deploy-rc.sh         # Deploys the plugin to RuneScape Developer Beta for testing
-│       └── deploy-modio.sh      # Handles mod.io release submission and deployment
+│       ├── ci.sh                    # Validates Lua syntax, plugin manifest and runs automated tests
+│       ├── package.sh               # Packages plugin files into a distributable ZIP archive
+│       ├── deploy-rc.sh             # Deploys the plugin to RuneScape Developer Beta for testing
+│       └── deploy-modio.sh          # Handles mod.io release submission and deployment
 ├── assets/
-│   ├── demo.gif                 # Animated gameplay demonstration of HP and Prayer warnings
+│   ├── demo.gif                     # Animated gameplay demonstration of HP and Prayer warnings
 │   └── screenshots/
-│       ├── hp-warning.jpg       # Red screen tint when HP falls below the warning threshold
-│       ├── prayer-warning.jpg   # Blue screen tint when Prayer falls below the warning threshold
-│       ├── split-warning.jpg    # Split-screen display when both HP and Prayer are low
-│       ├── settings-warnings.jpg   # Settings for enabling HP, Prayer and split-screen warnings
-│       ├── settings-thresholds.jpg # Configurable warning thresholds and overlay opacity
-│       └── settings-preview.jpg    # Settings for previewing visual warnings
-├── dist/                        # Generated plugin release packages
+│       ├── hp-warning.jpg           # Red screen tint when HP falls below the warning threshold
+│       ├── prayer-warning.jpg       # Blue screen tint when Prayer falls below the warning threshold
+│       ├── split-warning.jpg        # Split-screen display when both HP and Prayer are low
+│       ├── settings-warnings.jpg    # Settings for enabling HP, Prayer and split-screen warnings
+│       ├── settings-thresholds.jpg  # Configurable warning thresholds and overlay opacity
+│       └── settings-preview.jpg     # Settings for previewing visual warnings
+├── dist/                            # Generated plugin release packages
 ├── src/
-│   ├── main.lua                 # Runtime monitoring and overlay rendering
-│   ├── logic.lua                # HP/Prayer calculations and reading stabilisation
-│   ├── settings.lua             # Default configuration and persistent preferences
-│   ├── settings_ui.lua          # In-game settings interface and preview functionality
-│   └── plugin.json              # Plugin metadata, manifest and version
+│   ├── main.lua                     # Runtime monitoring and overlay rendering
+│   ├── logic.lua                    # HP/Prayer calculations and reading stabilisation
+│   ├── settings.lua                 # Default configuration and persistent preferences
+│   ├── settings_ui.lua              # In-game settings interface and preview functionality
+│   └── plugin.json                  # Plugin metadata, manifest and version
 ├── tests/
-│   └── test_logic.lua           # Automated unit tests for warning calculations
-├── .gitignore                   # Excludes generated files and local development artifacts
-└── README.md                    # Project documentation, installation and usage
+│   └── test_logic.lua               # Automated unit tests for warning calculations
+├── .gitignore                       # Excludes generated files and local development artifacts
+└── README.md                        # Project documentation, installation and usage
 ```
-
-
 
 ## 🚀 mod.io release
 
@@ -206,7 +205,7 @@ It is not made, endorsed or maintained by Jagex.
 
 Plugin availability on live worlds is subject to Jagex's official review and approval process.
 
----https://github.com/JohnMichaelCrawley/RS3-Plugin-AFK-Vitals-Tint/issues).https://github.com/JohnMichaelCrawley/RS3-Plugin-AFK-Vitals-Tint/issues)
+---
 
 <div align="center">
 
